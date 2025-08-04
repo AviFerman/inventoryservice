@@ -1,0 +1,23 @@
+server:
+  port: 8081
+spring:
+  application:
+    name: inventoryservice
+  docker:
+    compose:
+      enabled: false
+      skip:
+        in-tests: true
+  redis:
+    host: localhost
+    port: 6379
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: inventory-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    topic:
+      order-event: order.event
+      inventory-check: inventory.check.result.event
