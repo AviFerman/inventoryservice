@@ -35,14 +35,12 @@ public class KafkaListener {
         } catch (JsonProcessingException e) {
             log.error("Error processing inventory check message", e);
         }
-
     }
 
     private void updateOrderData(String orderId, OrderData orderData) throws JsonProcessingException {
         orderData.setOrderStatus(OrderStatusEnum.GOOD_TO_GO);
         redisService.updateJson(orderId, orderData);
     }
-
 
     private void manageOrder(OrderData orderData, OrderEvent orderEvent) {
         if (orderData != null) {
@@ -57,7 +55,6 @@ public class KafkaListener {
             orderData.getItems().forEach(item -> {
                 log.info("manageOrder:: Checking inventory for Item with Product ID: {}", item.getProductId());
                 productCatalogService.itemOrder(item);
-
             });
         } else {
             log.warn("handleInventoryForOrder:: No OrderData found for Order ID: {}", orderEvent.getOrderId());

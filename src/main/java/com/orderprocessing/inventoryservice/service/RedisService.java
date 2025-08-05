@@ -21,6 +21,7 @@ public class RedisService {
         log.debug("Wrote to Redis - key: {}, value: {}", key, json);
     }
     public void updateJson(String key, Object newValue) throws JsonProcessingException {
+        key = "order:" + key; // Ensure the key is prefixed with "order:"
         if (redisTemplate.hasKey(key)) {
             String json = objectMapper.writeValueAsString(newValue);
             redisTemplate.opsForValue().set(key, json);
