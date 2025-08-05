@@ -1,7 +1,10 @@
 package com.orderprocessing.inventoryservice.service;
 
+import com.orderprocessing.inventoryservice.dto.Item;
 import com.orderprocessing.inventoryservice.dto.ProductInfo;
 import com.orderprocessing.inventoryservice.enums.CategoryEnum;
+import com.orderprocessing.inventoryservice.enums.ItemAvailabilityEnum;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -9,6 +12,7 @@ import java.util.Collections;
 import java.util.Map;
 
 @Service
+@Slf4j
 public class ProductCatalogService {
     private final Map<String, ProductInfo> productCatalog;
 
@@ -33,5 +37,30 @@ public class ProductCatalogService {
 
     public ProductInfo getProduct(String productId) {
         return productCatalog.get(productId);
+    }
+
+    public void itemOrder(Item item) {
+        ProductInfo productInfo = getProduct(item.getProductId());
+        if (productInfo != null) {
+            if (productInfo.getCategory() == CategoryEnum.PERISHABLE && productInfo.getExpirationDate() != null) {
+                // check if now is greater then expiration date
+                if (LocalDate.now().isAfter(productInfo.getExpirationDate())) {
+                    item.setAvailability(ItemAvailabilityEnum.EXPIRATION_DATE_PASSED);
+                }
+            }
+            if (productInfo.getCategory() == CategoryEnum.STANDARD || productInfo.getCategory() == CategoryEnum.DIGITAL) {
+                if (productInfo.getAvailableQuantity() >= item.getQuantity()) {
+                    productInfo.setAvailableQuantity(productInfo.getAvailableQuantity() - item.getQuantity());
+                    item.setAvailability(ItemAvailabilityEnum.IN_STOCK);
+                } else {
+                    // insufficient stock for standard and digital items
+                    item.setAvailability(ItemAvailabilityEnum.OUT_OF_STOCK);
+                }
+            }
+        } else {
+            // product not found in catalog
+            log.error("Product with ID {} not found in catalog", item.getProductId());
+            throw new IllegalArgumentException("Product not found in catalog: " + item.getProductId());
+        }
     }
 }

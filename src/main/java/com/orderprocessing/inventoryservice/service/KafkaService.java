@@ -30,35 +30,34 @@ public class KafkaService {
             OrderData orderData = orderDataOptional.get();
             log.info("handleInventoryForOrder:: Received OrdedData: {}", orderData);
             manageOrder(orderData, orderEvent);
-//            updateOrderData(orderData);
+            updateOrderData(orderEvent.getOrderId(), orderData);
         } catch (JsonProcessingException e) {
             log.error("Error processing inventory check message", e);
         }
+
     }
+
+    private void updateOrderData(String orderId, OrderData orderData) throws JsonProcessingException {
+        orderData.setOrderStatus(OrderStatusEnum.GOOD_TO_GO);
+        redisService.updateJson(orderId, orderData);
+    }
+
 
     private void manageOrder(OrderData orderData, OrderEvent orderEvent) {
         if (orderData != null) {
             // Here you would typically check inventory and update it accordingly
             log.info("manageOrder:: Processing inventory for Order ID: {}", orderData.getOrderId());
             if (!allPoductIdAreValid(orderData)) {
-                log.info("manageOrder:: Invalid Product IDs found in Order Data");
+                log.info("manageOrder:: Invalid Product IDs found in Order Data - cancelling order.");
                 orderData.setOrderStatus(OrderStatusEnum.CANCELLED);
                 return;
-                }
+            }
 
-                orderData.getItems().forEach(item -> {
-                    log.info("manageOrder:: Checking inventory for Item with Product ID: {}", item.getProductId());
-                    if (item.getAvailability() == ItemAvailabilityEnum.IN_STOCK) {
-                        log.info("manageOrder:: Item {} is in stock. Quantity: {}", item.getProductId(), item.getQuantity());
-                    } else {
-                        log.warn("manageOrder:: Item {} is out of stock.", item.getProductId());
-                        // Handle out-f-stock scenario
-                    }
-                });
-            // Simulate inventory check and update logic
-            // For example, check if enough stock is available
-            // If sufficient stock, proceed with order fulfillment
-            // If not, handle out-of-stock scenario
+            orderData.getItems().forEach(item -> {
+                log.info("manageOrder:: Checking inventory for Item with Product ID: {}", item.getProductId());
+                productCatalogService.itemOrder(item);
+
+            });
         } else {
             log.warn("handleInventoryForOrder:: No OrderData found for Order ID: {}", orderEvent.getOrderId());
         }
