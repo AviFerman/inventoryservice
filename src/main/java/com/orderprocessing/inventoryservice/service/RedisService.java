@@ -20,6 +20,16 @@ public class RedisService {
         redisTemplate.opsForValue().set(key, json);
         log.debug("Wrote to Redis - key: {}, value: {}", key, json);
     }
+    public void updateJson(String key, Object newValue) throws JsonProcessingException {
+        key = "order:" + key; // Ensure the key is prefixed with "order:"
+        if (redisTemplate.hasKey(key)) {
+            String json = objectMapper.writeValueAsString(newValue);
+            redisTemplate.opsForValue().set(key, json);
+            log.debug("Updated Redis key: {}, with new value: {}", key, json);
+        } else {
+            log.warn("Key: {} does not exist in Redis. Update operation skipped.", key);
+        }
+    }
 
     public OrderData readJson(String key, Class<OrderData> type) {
         try {
