@@ -39,6 +39,10 @@ public class ProductCatalogService {
         return productCatalog.get(productId);
     }
 
+    public Map<String, ProductInfo> getAllProducts() {
+        return Collections.unmodifiableMap(productCatalog);
+    }
+
     public void itemOrder(Item item) {
         ProductInfo productInfo = getProduct(item.getProductId());
         if (productInfo != null) {
