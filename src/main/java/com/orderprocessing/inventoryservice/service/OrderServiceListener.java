@@ -6,12 +6,11 @@ import com.orderprocessing.inventoryservice.dto.OrderData;
 import com.orderprocessing.inventoryservice.dto.OrderEvent;
 import com.orderprocessing.inventoryservice.enums.ItemAvailabilityEnum;
 import com.orderprocessing.inventoryservice.enums.OrderStatusEnum;
+import com.orderprocessing.inventoryservice.repository.RedisOrderDataRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
-
-import java.util.Optional;
 
 @Service
 @Slf4j
@@ -21,26 +20,26 @@ public class OrderServiceListener {
     private final ObjectMapper objectMapper;
     private final ProductCatalogService productCatalogService;
     private final KafkaProducerService kafkaProducerService;
+    private final RedisOrderDataRepository redisOrderDataRepository;
 
     @KafkaListener(topics = "${spring.kafka.topic.order-event}", groupId = "inventory-service")
     public void handleInventoryForOrder(String message) {
         try {
             OrderEvent orderEvent = objectMapper.readValue(message, OrderEvent.class);
             log.info("handleInventoryForOrder:: Received Order Event with ID: {}", orderEvent.getOrderId());
-            OrderData orderData = Optional.ofNullable(redisService.readJson("order:" + orderEvent.getOrderId(), OrderData.class))
+            OrderData orderData = redisOrderDataRepository.findById(orderEvent.getOrderId())
                     .orElseThrow(() -> new IllegalStateException("Order data not found for ID: " + orderEvent.getOrderId()));
             log.info("handleInventoryForOrder:: Received OrdedData: {}", orderData);
             manageOrder(orderData, orderEvent);
             updateOrderData(orderEvent.getOrderId(), orderData);
             log.info("handleInventoryForOrder:: send Order Id to topic");
             kafkaProducerService.sendOrderEvent(orderEvent);
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             log.error("Error processing inventory check message", e);
         }
     }
 
     private void updateOrderData(String orderId, OrderData orderData) throws JsonProcessingException {
-//        orderData.setOrderStatus(OrderStatusEnum.GOOD_TO_GO);
         redisService.updateJson(orderId, orderData);
     }
 
