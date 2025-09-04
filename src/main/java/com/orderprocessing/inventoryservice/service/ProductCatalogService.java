@@ -4,7 +4,11 @@ import com.orderprocessing.inventoryservice.dto.Item;
 import com.orderprocessing.inventoryservice.dto.ProductInfo;
 import com.orderprocessing.inventoryservice.enums.CategoryEnum;
 import com.orderprocessing.inventoryservice.enums.ItemAvailabilityEnum;
+import com.orderprocessing.inventoryservice.strategy.ProviderStrategyFactory;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -15,6 +19,8 @@ import java.util.Map;
 @Slf4j
 public class ProductCatalogService {
     private final Map<String, ProductInfo> productCatalog;
+    @Autowired
+    private ProviderStrategyFactory strategyFactory;
 
     public ProductCatalogService() {
         this.productCatalog = initializeProductCatalog();
@@ -46,21 +52,8 @@ public class ProductCatalogService {
     public void itemOrder(Item item) {
         ProductInfo productInfo = getProduct(item.getProductId());
         if (productInfo != null) {
-            if (productInfo.getCategory() == CategoryEnum.PERISHABLE && productInfo.getExpirationDate() != null) {
-                // check if now is greater then expiration date
-                if (LocalDate.now().isAfter(productInfo.getExpirationDate())) {
-                    item.setAvailability(ItemAvailabilityEnum.EXPIRATION_DATE_PASSED);
-                }
-            }
-            if (productInfo.getCategory() == CategoryEnum.STANDARD || productInfo.getCategory() == CategoryEnum.DIGITAL) {
-                if (productInfo.getAvailableQuantity() >= item.getQuantity()) {
-                    productInfo.setAvailableQuantity(productInfo.getAvailableQuantity() - item.getQuantity());
-                    item.setAvailability(ItemAvailabilityEnum.IN_STOCK);
-                } else {
-                    // insufficient stock for standard and digital items
-                    item.setAvailability(ItemAvailabilityEnum.OUT_OF_STOCK);
-                }
-            }
+            String categoryName = productInfo.getCategory().name();
+            strategyFactory.getStrategy(categoryName).processOrder(item, productInfo);
         } else {
             // product not found in catalog
             log.error("Product with ID {} not found in catalog", item.getProductId());

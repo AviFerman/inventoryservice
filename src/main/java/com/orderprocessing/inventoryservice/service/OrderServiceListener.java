@@ -46,7 +46,6 @@ public class OrderServiceListener {
 
     private void manageOrder(OrderData orderData, OrderEvent orderEvent) {
         if (orderData != null) {
-            // Here you would typically check inventory and update it accordingly
             log.info("manageOrder:: Processing inventory for Order ID: {}", orderData.getOrderId());
             if (!allPoductIdAreValid(orderData)) {
                 log.info("manageOrder:: Invalid Product IDs found in Order Data - cancelling order.");
